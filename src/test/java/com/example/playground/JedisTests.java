@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.resps.Tuple;
 
 @SpringBootTest
 public class JedisTests {
@@ -149,6 +150,32 @@ public class JedisTests {
             Map<String, String> getUserInfo = jedis.hgetAll("users:1:info");
 
             getUserInfo.forEach((k, v) -> System.out.printf("%s: %s%n", k,v));
+        }
+    }
+
+    @Test
+    public void jedisSortedSetTests() {
+        JedisPool pool = new JedisPool("localhost", 6379);
+
+        try (Jedis jedis = pool.getResource()) {
+            var scores = new HashMap<String, Double>();
+            scores.put("users1", 100.0);
+            scores.put("users2", 30.0);
+            scores.put("users3", 50.0);
+            scores.put("users4", 80.0);
+            scores.put("users5", 15.0);
+
+            jedis.zadd("game1:scores", scores);
+
+            List<String> zrange = jedis.zrange("game1:scores", 0, Long.MAX_VALUE);
+            zrange.forEach(System.out::println);
+
+            System.out.println(jedis.zcard("game1:scores"));
+
+            jedis.zincrby("game1:scores", 100.0, "users5");
+
+            List<Tuple> tuples = jedis.zrangeWithScores("game1:scores", 0, Long.MAX_VALUE);
+            tuples.forEach(i -> System.out.printf("%s: %s%n", i.getElement(), i.getScore()));
         }
     }
 
