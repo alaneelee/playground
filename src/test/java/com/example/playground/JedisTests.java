@@ -7,9 +7,13 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import redis.clients.jedis.GeoCoordinate;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.args.GeoUnit;
+import redis.clients.jedis.params.GeoSearchParam;
+import redis.clients.jedis.resps.GeoRadiusResponse;
 import redis.clients.jedis.resps.Tuple;
 
 @SpringBootTest
@@ -179,4 +183,29 @@ public class JedisTests {
         }
     }
 
+    @Test
+    public void jedisGeospatialTests() {
+        JedisPool pool = new JedisPool("localhost", 6379);
+
+        try (Jedis jedis = pool.getResource()) {
+            jedis.geoadd("stores1:geo", 127.02985530619755, 37.49911212874, "some1");
+            jedis.geoadd("stores1:geo", 127.0333352287619, 37.491921163986234, "some2");
+
+            Double geodist = jedis.geodist("stores1:geo", "some1", "some2");
+            System.out.println(geodist);
+
+            List<GeoRadiusResponse> geoRadiusResponseList = jedis.geosearch("stores1:geo",
+                new GeoSearchParam()
+                    .fromLonLat(new GeoCoordinate(127.033, 37.495))
+                    .byRadius(500, GeoUnit.M)
+                    .withCoord()
+            );
+
+            geoRadiusResponseList.forEach(response -> System.out.printf("member: %s%nlat: %s%nlon: %s%n", response.getMemberByString(), response.getCoordinate()
+                .getLatitude(), response.getCoordinate().getLongitude()));
+
+            jedis.unlink("stores1:geo");
+
+        }
+    }
 }
