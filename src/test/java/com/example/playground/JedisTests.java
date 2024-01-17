@@ -4,6 +4,7 @@ import java.sql.SQLOutput;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import redis.clients.jedis.Jedis;
@@ -69,7 +70,7 @@ public class JedisTests {
     }
 
     @Test
-    public void jedisListAndSetTests() {
+    public void jedisListTests() {
         JedisPool pool = new JedisPool("localhost", 6379);
 
         try (Jedis jedis = pool.getResource()) {
@@ -101,6 +102,27 @@ public class JedisTests {
                     blpop.forEach(System.out::println);
                 }
             }
+        }
+    }
+
+    @Test
+    public void jedisSetTests() {
+        JedisPool pool = new JedisPool("localhost", 6379);
+
+        try (Jedis jedis = pool.getResource()) {
+            jedis.sadd("users:500:follow", "100", "200", "300");
+            jedis.srem("users:500:follow", "100");
+
+            Set<String> smembers = jedis.smembers("users:500:follow");
+            smembers.forEach(System.out::println);
+
+            System.out.println(jedis.sismember("users:500:follow", "200"));
+            System.out.println(jedis.sismember("users:500:follow", "100"));
+
+            System.out.println(jedis.scard("users:500:follow"));
+
+            System.out.println(jedis.sadd("users:100:follow", "100","200"));
+            System.out.println(jedis.sinter("users:100:follow", "users:500:follow"));
         }
     }
 
