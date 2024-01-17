@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import redis.clients.jedis.GeoCoordinate;
@@ -126,7 +127,7 @@ public class JedisTests {
 
             System.out.println(jedis.scard("users:500:follow"));
 
-            System.out.println(jedis.sadd("users:100:follow", "100","200"));
+            System.out.println(jedis.sadd("users:100:follow", "100", "200"));
             System.out.println(jedis.sinter("users:100:follow", "users:500:follow"));
         }
     }
@@ -135,7 +136,7 @@ public class JedisTests {
     public void jedisHashTests() {
         JedisPool pool = new JedisPool("localhost", 6379);
 
-        try (Jedis jedis = pool.getResource()){
+        try (Jedis jedis = pool.getResource()) {
             jedis.hset("users:1:info", "name", "alanee");
 
             var userInfo = new HashMap<String, String>();
@@ -150,10 +151,9 @@ public class JedisTests {
 
             jedis.hincrBy("users:1:info", "visits", 5);
 
-
             Map<String, String> getUserInfo = jedis.hgetAll("users:1:info");
 
-            getUserInfo.forEach((k, v) -> System.out.printf("%s: %s%n", k,v));
+            getUserInfo.forEach((k, v) -> System.out.printf("%s: %s%n", k, v));
         }
     }
 
@@ -201,11 +201,42 @@ public class JedisTests {
                     .withCoord()
             );
 
-            geoRadiusResponseList.forEach(response -> System.out.printf("member: %s%nlat: %s%nlon: %s%n", response.getMemberByString(), response.getCoordinate()
-                .getLatitude(), response.getCoordinate().getLongitude()));
+            geoRadiusResponseList.forEach(
+                response -> System.out.printf("member: %s%nlat: %s%nlon: %s%n",
+                    response.getMemberByString(), response.getCoordinate()
+                        .getLatitude(), response.getCoordinate().getLongitude()));
 
             jedis.unlink("stores1:geo");
 
+        }
+    }
+
+    @Test
+    public void jedisBitmapTests() {
+        JedisPool pool = new JedisPool("localhost", 6379);
+
+        try (Jedis jedis = pool.getResource()) {
+            jedis.setbit("request-somepage-0107", 100, true);
+            jedis.setbit("request-somepage-0107", 200, true);
+            jedis.setbit("request-somepage-0107", 300, true);
+
+            System.out.println(jedis.getbit("request-somepage-0107", 100));
+            System.out.println(jedis.getbit("request-somepage-0107", 50));
+
+            System.out.println(jedis.bitcount("request-somepage-0107"));
+
+            // bitmap vs set
+            Pipeline pipelined = jedis.pipelined();
+            IntStream.rangeClosed(0, 1000000).forEach(i -> {
+                pipelined.sadd("request-somepage-set", String.valueOf(i), "1");
+                pipelined.setbit("request-somepage-bit", i, true);
+
+                if (i == 1000) {
+                    pipelined.sync();
+                }
+            });
+            pipelined.sync();
+            // 터미널에서 MEMORY USAGE request-somepage-set 와 request-somepage-bit를 비교해보면 차이를 느낄 수 있다.
         }
     }
 }
