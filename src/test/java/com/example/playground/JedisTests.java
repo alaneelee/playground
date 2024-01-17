@@ -126,4 +126,30 @@ public class JedisTests {
         }
     }
 
+    @Test
+    public void jedisHashTests() {
+        JedisPool pool = new JedisPool("localhost", 6379);
+
+        try (Jedis jedis = pool.getResource()){
+            jedis.hset("users:1:info", "name", "alanee");
+
+            var userInfo = new HashMap<String, String>();
+            userInfo.put("email", "alanee@gmail.com");
+            userInfo.put("phone", "010-0000-0000");
+
+            jedis.hset("users:1:info", userInfo);
+            System.out.println(jedis.hget("users:1:info", "phone"));
+
+            jedis.hdel("users:1:info", "phone");
+            System.out.println(jedis.hget("users:1:info", "phone"));
+
+            jedis.hincrBy("users:1:info", "visits", 5);
+
+
+            Map<String, String> getUserInfo = jedis.hgetAll("users:1:info");
+
+            getUserInfo.forEach((k, v) -> System.out.printf("%s: %s%n", k,v));
+        }
+    }
+
 }
