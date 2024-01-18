@@ -74,8 +74,8 @@ public class BlockNonBlockExamples {
                 }
 
                 if (clientChannel.isOpen()) {
-                    System.out.println("Closing Client: " + clientChannel.getRemoteAddress()
-                        clientChannel.close());
+                    System.out.println("Closing Client: " + clientChannel.getRemoteAddress());
+                        clientChannel.close();
                 }
             }
         } catch (IOException | InterruptedException e) {
